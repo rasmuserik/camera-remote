@@ -9,6 +9,12 @@ import { store } from "./state";
 
 installStyles();
 
+const chan =
+  window.location.hash.slice(1) ||
+  Math.random()
+    .toString(36)
+    .slice(2);
+var QRCode = require("qrcode.react");
 const IPFS = require("ipfs");
 const node = new IPFS({
   EXPERIMENTAL: { pubsub: true, dht: true },
@@ -42,7 +48,7 @@ node.on("error", error => {
   console.error("IPFS Error:", error);
 });
 
-(async () => {
+async function openCamera() {
   try {
     const stream = await navigator.mediaDevices.getUserMedia({
       audio: false,
@@ -66,12 +72,14 @@ node.on("error", error => {
     console.log(e);
     throw e;
   }
-})();
+}
 
 const theme = createMuiTheme({});
 function render() {
   ReactDOM.render(
     <Provider store={store}>
+      <button onclick={openCamera}>capture </button>
+      <QRCode value={window.location.href.replace(/#.*/, "") + "#" + chan} />
       <video id="video" />
       <canvas id="frame" />
       <MuiThemeProvider theme={theme}>
