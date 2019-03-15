@@ -24,20 +24,15 @@ const id = Math.random()
   .toString(36)
   .slice(2);
 window.ipfs = node;
-
 node.on("ready", async () => {
   try {
     console.log("IPFS READY");
     await node.pubsub.subscribe("solsort-stop-motion", msg =>
       console.log("pubsub", new TextDecoder("utf-8").decode(msg.data))
     );
-    setInterval(
-      () =>
-        node.pubsub.publish(
-          "solsort-stop-motion",
-          Buffer.from(`hello from ${id} ` + window.navigator.userAgent)
-        ),
-      5000
+    node.pubsub.publish(
+      "solsort-stop-motion",
+      Buffer.from(`hello from ${id} ` + window.navigator.userAgent)
     );
   } catch (e) {
     console.log("ipfserr", e);
@@ -47,10 +42,38 @@ node.on("error", error => {
   console.error("IPFS Error:", error);
 });
 
+(async () => {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({
+      audio: false,
+      video: true
+    });
+    const video = document.getElementById("video");
+    video.srcObject = stream;
+    video.play();
+    window.stream = stream;
+    video.onclick = () => {
+      const canvas = document.getElementById("frame");
+      console.log("capture", canvas);
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      canvas
+        .getContext("2d")
+        .drawImage(video, 0, 0, canvas.width, canvas.height);
+    };
+  } catch (e) {
+    console.log("video error", e);
+    console.log(e);
+    throw e;
+  }
+})();
+
 const theme = createMuiTheme({});
 function render() {
   ReactDOM.render(
     <Provider store={store}>
+      <video id="video" />
+      <canvas id="frame" />
       <MuiThemeProvider theme={theme}>
         <App />
       </MuiThemeProvider>
