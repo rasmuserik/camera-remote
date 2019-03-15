@@ -6,6 +6,7 @@ import * as serviceWorker from "./serviceWorker";
 import { MuiThemeProvider, createMuiTheme } from "@material-ui/core/styles";
 import { Provider } from "react-redux";
 import { store } from "./state";
+import jsQR from "jsqr";
 
 installStyles();
 
@@ -49,6 +50,7 @@ node.on("error", error => {
 });
 
 async function openCamera() {
+  console.log("here");
   try {
     const stream = await navigator.mediaDevices.getUserMedia({
       audio: false,
@@ -63,9 +65,11 @@ async function openCamera() {
       console.log("capture", canvas);
       canvas.width = video.videoWidth;
       canvas.height = video.videoHeight;
-      canvas
-        .getContext("2d")
-        .drawImage(video, 0, 0, canvas.width, canvas.height);
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      const { data } = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const code = jsQR(data, canvas.width, canvas.height);
+      console.log("jsqr", code);
     };
   } catch (e) {
     console.log("video error", e);
@@ -78,9 +82,9 @@ const theme = createMuiTheme({});
 function render() {
   ReactDOM.render(
     <Provider store={store}>
-      <button onclick={openCamera}>capture </button>
+      <button onClick={openCamera}>open camera</button>
       <QRCode value={window.location.href.replace(/#.*/, "") + "#" + chan} />
-      <video id="video" />
+      <video id="video" width={100} />
       <canvas id="frame" />
       <MuiThemeProvider theme={theme}>
         <App />
