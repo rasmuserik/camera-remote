@@ -1,0 +1,43 @@
+{
+  "name": "stop-motion",
+  "version": "0.1.0",
+  "private": true,
+  "author": "Rasmus Erik Voel Jensen (rasmuserik.com)",
+  "homepage": "https://stop-motion.solsort.com",
+  "lint-staged": {
+    "*.{js,jsx,md,json,css}": [
+      "prettier --write",
+      "git add"
+    ]
+  },
+  "pre-commit": [
+    "prettier"
+  ],
+  "dependencies": {
+    "@material-ui/core": "^3.9.2",
+    "@mdi/js": "^3.5.95",
+    "axios": "^0.18.0",
+    "gh-pages": "^2.0.1",
+    "immutable": "^4.0.0-rc.12",
+    "jss": "^9.8.7",
+    "lodash": "^4.17.11",
+    "react": "^16.8.4",
+    "react-dom": "^16.8.4",
+    "react-jss": "^8.6.1",
+    "redux": "^4.0.1"
+  },
+  "devDependencies": {
+    "react-scripts": "2.1.8",
+    "lint-staged": "^8.1.5",
+    "pre-commit": "^1.2.2",
+    "prettier": "^1.16.4"
+  },
+  "scripts": {
+    "start": "react-scripts start",
+    "build": "react-scripts build",
+    "prettier": "lint-staged",
+    "test": "react-scripts test",
+    "predeploy": "npm run build",
+    "deploy": "gh-pages -d build"
+  }
+}
