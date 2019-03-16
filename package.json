@@ -28,9 +28,11 @@
     "react": "^16.8.4",
     "react-dom": "^16.8.4",
     "react-jss": "^8.6.1",
+    "react-markdown": "^4.0.6",
     "react-redux": "^6.0.1",
     "redux": "^4.0.1",
-    "redux-thunk": "^2.3.0"
+    "redux-thunk": "^2.3.0",
+    "typeface-roboto": "0.0.54"
   },
   "devDependencies": {
     "react-scripts": "2.1.8",
