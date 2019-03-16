@@ -32,7 +32,7 @@ class App extends Component {
     msgs: []
   };
   async startComputer() {
-    let { chan, msgs } = this.state;
+    let { chan } = this.state;
     this.setState({ uiType: "computer" });
 
     if (!chan) {
@@ -43,10 +43,15 @@ class App extends Component {
     }
 
     await node.pubsub.subscribe("solsort-stop-motion-" + chan, msg => {
+      const { msgs } = this.state;
       const data = decode(msg.data);
       console.log("solsort-stop-motion-" + chan, "data", data, msg);
       if (data) {
-        this.setState({ msgs: [data].concat(msgs) });
+        this.setState({
+          msgs: msgs.concat([
+            { recvFrom: msg.from, recvDate: new Date().toISOString(), ...data }
+          ])
+        });
       }
     });
     console.log("solsort-stop-motion-" + chan);
@@ -56,6 +61,7 @@ class App extends Component {
           "solsort-stop-motion-" + chan,
           encode({
             ua: window.navigator.userAgent,
+            role: "computer",
             chan,
             time: new Date().toISOString()
           })
@@ -91,18 +97,19 @@ class App extends Component {
       };
 
       // setup ipfs
-      console.log("solsort-stop-motion-" + chan);
-      node.pubsub.publish(
-        "solsort-stop-motion-" + chan,
-        encode({ hello: 123 })
-      );
-
-      await node.pubsub.subscribe("solsort-stop-motion", msg =>
-        console.log("pubsub", new TextDecoder("utf-8").decode(msg.data))
-      );
-      node.pubsub.publish(
-        "solsort-stop-motion",
-        Buffer.from(`camera from ${chan} ` + window.navigator.userAgent)
+      //
+      setInterval(
+        () =>
+          node.pubsub.publish(
+            "solsort-stop-motion-" + chan,
+            encode({
+              ua: window.navigator.userAgent,
+              role: "camera",
+              chan,
+              time: new Date().toISOString()
+            })
+          ),
+        5000
       );
     } catch (e) {
       console.log("startCamera error", e);
