@@ -32,6 +32,7 @@
     "react-redux": "^6.0.1",
     "redux": "^4.0.1",
     "redux-thunk": "^2.3.0",
+    "simple-peer": "^9.2.1",
     "typeface-roboto": "0.0.54"
   },
   "devDependencies": {

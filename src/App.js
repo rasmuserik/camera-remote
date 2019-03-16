@@ -6,6 +6,7 @@ import jsQR from "jsqr";
 import ReactMarkdown from "react-markdown";
 import QRCode from "qrcode.react";
 import { node } from "./ipfs";
+import Peer from "simple-peer";
 
 const styles = theme => ({
   button: {
@@ -29,9 +30,11 @@ class App extends Component {
   state = {
     chan: window.location.hash.slice(1) || undefined,
     uiType: undefined,
-    msgs: []
+    msgs: [],
+    streams: []
   };
   async startComputer() {
+    const peers = {};
     let { chan } = this.state;
     this.setState({ uiType: "computer" });
 
@@ -42,7 +45,8 @@ class App extends Component {
       this.setState({ chan });
     }
 
-    await node.pubsub.subscribe("solsort-stop-motion-" + chan, msg => {
+    const cons = {};
+    await node.pubsub.subscribe("solsort-stop-motion-" + chan, async msg => {
       const { msgs } = this.state;
       const data = decode(msg.data);
       console.log("solsort-stop-motion-" + chan, "data", data, msg);
@@ -52,8 +56,35 @@ class App extends Component {
             { recvFrom: msg.from, recvDate: new Date().toISOString(), ...data }
           ])
         });
+        if (data.type === "signal") {
+          const id = msg.from;
+          let o = cons[id];
+          if (!o) {
+            o = { peer: new Peer() };
+            o.peer.on("signal", data => {
+              node.pubsub.publish(
+                "solsort-stop-motion-" + chan,
+                encode({ to: id, data })
+              );
+            });
+            o.peer.on("connect", () =>
+              node.pubsub.publish(
+                "solsort-stop-motion-" + chan,
+                encode({ id, connected: true })
+              )
+            );
+            cons[id] = o;
+            o.peer.on("stream", stream => {
+              const { streams } = this.state;
+              this.setState({ streams: streams.concat([{ stream, id }]) });
+            });
+          }
+
+          o.peer.signal(data.data);
+        }
       }
     });
+    /*
     console.log("solsort-stop-motion-" + chan);
     setInterval(
       () =>
@@ -68,11 +99,10 @@ class App extends Component {
         ),
       5000
     );
+    */
   }
-
   async startCamera() {
     try {
-      let { chan } = this.state;
       this.setState({ uiType: "camera" });
       await sleep(300);
 
@@ -100,35 +130,73 @@ class App extends Component {
         }
       };
       await ensureChan();
-      window.stream = stream;
-      video.onclick = () => {};
+      const { chan } = this.state;
 
       // setup ipfs
       //
-      setInterval(
+      const computer = new Peer({ initiator: true, stream });
+      let sending = undefined;
+      const sender = setInterval(
         () =>
+          sending &&
           node.pubsub.publish(
             "solsort-stop-motion-" + chan,
             encode({
-              ua: window.navigator.userAgent,
-              role: "camera",
-              chan,
-              time: new Date().toISOString()
+              typs: "signal",
+              data: sending
             })
           ),
         5000
       );
+
+      await node.pubsub.subscribe("solsort-stop-motion-" + chan, async msg => {
+        const data = decode(msg.data);
+        if (data) {
+          console.log("xxx", data.to, (await node.id()).id);
+          if (data.to === (await node.id()).id) {
+            console.log("here!", msg.data);
+            clearInterval(sender);
+            computer.signal(data.data);
+          }
+        }
+      });
+      computer.on("signal", data => {
+        sending = data;
+        node.pubsub.publish(
+          "solsort-stop-motion-" + chan,
+          encode({
+            type: "signal",
+            data
+          })
+        );
+      });
+      computer.on("connect", () => console.log("CONNECTED"));
     } catch (e) {
       console.log("startCamera error", e);
       throw e;
     }
   }
+  componentDidUpdate() {
+    const { streams } = this.state;
+    for (const { id, stream } of streams) {
+      const video = document.getElementById(id);
+      console.log("didUpdate", video, stream);
+      video.srcObject = stream;
+      video.play();
+    }
+  }
   renderComputer() {
     const { classes } = this.props;
-    const { chan, msgs } = this.state;
+    const { chan, msgs, streams } = this.state;
     const qrUrl = window.location.href.replace(/#.*./, "") + "#" + chan;
     return (
       <div>
+        {streams.map(({ id, stream, streamUrl }) => (
+          <span key={id}>
+            {id}
+            <video id={id} />
+          </span>
+        ))}
         <center>
           <br />
           <div
@@ -222,14 +290,13 @@ class App extends Component {
           <div style={{ textAlign: "left", maxWidth: "60ex" }}>
             <ReactMarkdown
               source={`
-
-      ### About
+### About
 
 
 This is a simple tool for making stop motion animations, with a UI running on a computer/tablet while using a mobile phone or similar as a remote controlled camera. 
 
 
-            `}
+            `.trim()}
             />
           </div>
         </Typography>
