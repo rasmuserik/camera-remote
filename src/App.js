@@ -4,6 +4,7 @@ import Button from "@material-ui/core/Button";
 import Typography from "@material-ui/core/Typography";
 import jsQR from "jsqr";
 import ReactMarkdown from "react-markdown";
+import QRCode from "qrcode.react";
 
 const styles = theme => ({
   button: {
@@ -13,11 +14,29 @@ const styles = theme => ({
 
 class App extends Component {
   state = {
+    chan: window.location.hash.slice(1) || undefined,
     uiType: undefined
   };
   render() {
     const { classes } = this.props;
-    const { uiType } = this.state;
+    const { uiType, chan } = this.state;
+
+    if (uiType === "computer") {
+      const qrUrl = window.location.href.replace(/#.*./, "") + "#" + chan;
+      return (
+        <div>
+          <div style={{ float: "left", marginRight: 8 }}>
+            <QRCode value={qrUrl} />
+          </div>
+          <Typography variant="h4">Connect camera</Typography>
+          <Typography>
+            To connect a camera, scan the QR-code, or open <br /> the following
+            url on your mobile phone / device: <br /> <code>{qrUrl}</code>
+            <br />
+          </Typography>
+        </div>
+      );
+    }
 
     return (
       <center>
@@ -32,7 +51,16 @@ class App extends Component {
           variant="contained"
           color="primary"
           className={classes.button}
-          onClick={() => this.setState({ uiType: "ui" })}
+          onClick={() => {
+            this.setState({
+              uiType: "computer",
+              chan:
+                chan ||
+                Math.random()
+                  .toString(36)
+                  .slice(2)
+            });
+          }}
         >
           Computer
         </Button>
@@ -101,7 +129,6 @@ async function openCamera() {
   }
 }
       <button onClick={openCamera}>open camera</button>
-      <QRCode value={window.location.href.replace(/#.*./, "") + "#" + chan} />
       <video id="video" width={100} />
       <canvas id="frame" />
       */
