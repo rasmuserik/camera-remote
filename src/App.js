@@ -1,23 +1,46 @@
 import React, { Component } from "react";
-import logo from "./logo.svg";
+import { withStyles } from "@material-ui/core/styles";
+import Button from "@material-ui/core/Button";
+import Typography from "@material-ui/core/Typography";
+
+const styles = theme => ({
+  button: {
+    margin: theme.spacing.unit
+  }
+});
 
 class App extends Component {
+  state = {
+    uiType: undefined
+  };
   render() {
-    return (
-      <div className="App">
-        <header className="App-header">
-          <img src={logo} className="App-logo" alt="logo" />
-          <p>blah blah</p>
-          <a
-            className="App-link"
-            href="https://reactjs.org"
-            target="_blank"
-            rel="noopener noreferrer"
-          />
-        </header>
-      </div>
-    );
+    const { classes } = this.props;
+    const { uiType } = this.state;
+    if (!uiType) {
+      return (
+        <center>
+          <Typography>Is this a animation UI or a Camera?</Typography>
+          <Button
+            variant="contained"
+            color="primary"
+            className={classes.button}
+            onClick={() => this.setState({ uiType: "ui" })}
+          >
+            UI
+          </Button>
+          <Button
+            variant="contained"
+            color="primary"
+            className={classes.button}
+            onClick={() => this.setState({ uiType: "camera" })}
+          >
+            Camera
+          </Button>
+        </center>
+      );
+    }
+    return <div>{uiType}</div>;
   }
 }
 
-export default App;
+export default withStyles(styles)(App);
