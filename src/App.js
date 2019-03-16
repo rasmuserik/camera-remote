@@ -295,10 +295,7 @@ class App extends Component {
               source={`
 ### About
 
-
-This is a simple tool for making stop motion animations, with a UI running on a computer/tablet while using a mobile phone or similar as a remote controlled camera. 
-
-
+This is a simple tool for connecting a UI running on a computer/tablet with the camera of a mobile phone or similar. No-server proof of concept using IPFS/WebRTC. This experiment might be used for a stop-motion web/app later on.
             `.trim()}
             />
           </div>
