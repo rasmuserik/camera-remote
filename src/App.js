@@ -84,17 +84,24 @@ class App extends Component {
       const video = document.getElementById("cameraPreview");
       video.srcObject = stream;
       video.play();
-      window.stream = stream;
-      video.onclick = () => {
-        const canvas = document.getElementById("capturedFrame");
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-        const ctx = canvas.getContext("2d");
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-        const { data } = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        const code = jsQR(data, canvas.width, canvas.height);
-        console.log("jsqr", code);
+      const ensureChan = async () => {
+        while (!this.state.chan) {
+          await sleep(1000);
+          const canvas = document.getElementById("capturedFrame");
+          canvas.width = video.videoWidth;
+          canvas.height = video.videoHeight;
+          const ctx = canvas.getContext("2d");
+          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+          const { data } = ctx.getImageData(0, 0, canvas.width, canvas.height);
+          const code = jsQR(data, canvas.width, canvas.height);
+          if (code) {
+            this.setState({ chan: code.data.replace(/^.*#/, "") });
+          }
+        }
       };
+      await ensureChan();
+      window.stream = stream;
+      video.onclick = () => {};
 
       // setup ipfs
       //
@@ -216,7 +223,7 @@ class App extends Component {
             <ReactMarkdown
               source={`
 
-### About
+      ### About
 
 
 This is a simple tool for making stop motion animations, with a UI running on a computer/tablet while using a mobile phone or similar as a remote controlled camera. 
