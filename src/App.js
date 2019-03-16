@@ -13,12 +13,14 @@ const styles = theme => ({
   }
 });
 
+const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+
 class App extends Component {
   state = {
     chan: window.location.hash.slice(1) || undefined,
     uiType: undefined
   };
-  startComputer() {
+  async startComputer() {
     let { chan } = this.state;
     this.setState({ uiType: "computer" });
 
@@ -29,33 +31,98 @@ class App extends Component {
       this.setState({ chan });
     }
   }
-  render() {
+  async startCamera() {
+    this.setState({ uiType: "camera" });
+    await sleep(300);
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: false,
+        video: true
+      });
+      const video = document.getElementById("cameraPreview");
+      video.srcObject = stream;
+      video.play();
+      window.stream = stream;
+      video.onclick = () => {
+        const canvas = document.getElementById("capturedFrame");
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        const { data } = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const code = jsQR(data, canvas.width, canvas.height);
+        console.log("jsqr", code);
+      };
+    } catch (e) {
+      console.log("video error", e);
+      console.log(e);
+      throw e;
+    }
+  }
+  renderComputer() {
     const { classes } = this.props;
-    const { uiType, chan } = this.state;
-
-    if (uiType === "computer") {
-      const qrUrl = window.location.href.replace(/#.*./, "") + "#" + chan;
-      return (
-        <center>
-          <br />
+    const { chan } = this.state;
+    const qrUrl = window.location.href.replace(/#.*./, "") + "#" + chan;
+    return (
+      <center>
+        <br />
+        <div style={{ display: "inline-block", width: 520, textAlign: "left" }}>
+          <div style={{ float: "right", marginLeft: 8 }}>
+            <QRCode value={qrUrl} />
+          </div>
+          <Typography variant="h3" gutterBottom={true}>
+            Connect camera
+          </Typography>
+          <Typography>
+            To connect a camera, open the web-app, scan the QR-code, or open the
+            following url on your mobile phone / device: <br />{" "}
+            <code>{qrUrl}</code>
+            <br />
+          </Typography>
+        </div>
+      </center>
+    );
+  }
+  renderCamera() {
+    const { classes } = this.props;
+    const { chan } = this.state;
+    return (
+      <center>
+        {!chan && (
           <div
-            style={{ display: "inline-block", width: 520, textAlign: "left" }}
+            style={{
+              position: "fixed",
+              left: "50%",
+              width: 320,
+              marginLeft: -160,
+              top: 50,
+              display: "inline-block",
+              textShadow: "1px 1px 4px white"
+            }}
           >
-            <div style={{ float: "right", marginLeft: 8 }}>
-              <QRCode value={qrUrl} />
-            </div>
-            <Typography variant="h3" gutterBottom={true}>
-              Connect camera
-            </Typography>
-            <Typography>
-              To connect a camera, open the web-app, scan the QR-code, or open
-              the following url on your mobile phone / device: <br />{" "}
-              <code>{qrUrl}</code>
-              <br />
+            <Typography variant="h4" gutterBottom={true}>
+              Point the camera to the QR-code on the computer to connect.
             </Typography>
           </div>
-        </center>
-      );
+        )}
+        <video
+          style={{ maxWidth: window.innerWidth, maxHeight: window.innerHeight }}
+          id="cameraPreview"
+        />{" "}
+        <br />
+        <canvas id="capturedFrame" />
+      </center>
+    );
+  }
+  render() {
+    const { uiType } = this.state;
+    const { classes } = this.props;
+
+    if (uiType === "computer") {
+      return this.renderComputer();
+    }
+    if (uiType === "camera") {
+      return this.renderCamera();
     }
 
     return (
@@ -78,7 +145,7 @@ class App extends Component {
           variant="contained"
           color="primary"
           className={classes.button}
-          onClick={() => this.setState({ uiType: "camera" })}
+          onClick={() => this.startCamera()}
         >
           Camera
         </Button>
