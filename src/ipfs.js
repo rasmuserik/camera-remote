@@ -16,13 +16,16 @@ window.ipfs = node;
 node.on("ready", async () => {
   try {
     console.log("IPFS READY");
+    /*
     await node.pubsub.subscribe("solsort-stop-motion", msg =>
       console.log("pubsub", new TextDecoder("utf-8").decode(msg.data))
     );
+    setInterval(() =>
     node.pubsub.publish(
       "solsort-stop-motion",
       Buffer.from(`hello from ${id} ` + window.navigator.userAgent)
-    );
+    ), 5000);
+    */
   } catch (e) {
     console.log("ipfserr", e);
   }

@@ -14,14 +14,25 @@ const styles = theme => ({
 });
 
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+function decode(bytes) {
+  try {
+    return JSON.parse(new TextDecoder("utf-8").decode(bytes));
+  } catch (e) {
+    return undefined;
+  }
+}
+function encode(data) {
+  return Buffer.from(JSON.stringify(data));
+}
 
 class App extends Component {
   state = {
     chan: window.location.hash.slice(1) || undefined,
-    uiType: undefined
+    uiType: undefined,
+    msgs: []
   };
   async startComputer() {
-    let { chan } = this.state;
+    let { chan, msgs } = this.state;
     this.setState({ uiType: "computer" });
 
     if (!chan) {
@@ -30,11 +41,36 @@ class App extends Component {
         .slice(2);
       this.setState({ chan });
     }
+
+    await node.pubsub.subscribe("solsort-stop-motion-" + chan, msg => {
+      const data = decode(msg.data);
+      console.log("solsort-stop-motion-" + chan, "data", data, msg);
+      if (data) {
+        this.setState({ msgs: [data].concat(msgs) });
+      }
+    });
+    console.log("solsort-stop-motion-" + chan);
+    setInterval(
+      () =>
+        node.pubsub.publish(
+          "solsort-stop-motion-" + chan,
+          encode({
+            ua: window.navigator.userAgent,
+            chan,
+            time: new Date().toISOString()
+          })
+        ),
+      5000
+    );
   }
+
   async startCamera() {
-    this.setState({ uiType: "camera" });
-    await sleep(300);
     try {
+      let { chan } = this.state;
+      this.setState({ uiType: "camera" });
+      await sleep(300);
+
+      // setup camera
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: false,
         video: true
@@ -53,34 +89,53 @@ class App extends Component {
         const code = jsQR(data, canvas.width, canvas.height);
         console.log("jsqr", code);
       };
+
+      // setup ipfs
+      console.log("solsort-stop-motion-" + chan);
+      node.pubsub.publish(
+        "solsort-stop-motion-" + chan,
+        encode({ hello: 123 })
+      );
+
+      await node.pubsub.subscribe("solsort-stop-motion", msg =>
+        console.log("pubsub", new TextDecoder("utf-8").decode(msg.data))
+      );
+      node.pubsub.publish(
+        "solsort-stop-motion",
+        Buffer.from(`camera from ${chan} ` + window.navigator.userAgent)
+      );
     } catch (e) {
-      console.log("video error", e);
-      console.log(e);
+      console.log("startCamera error", e);
       throw e;
     }
   }
   renderComputer() {
     const { classes } = this.props;
-    const { chan } = this.state;
+    const { chan, msgs } = this.state;
     const qrUrl = window.location.href.replace(/#.*./, "") + "#" + chan;
     return (
-      <center>
-        <br />
-        <div style={{ display: "inline-block", width: 520, textAlign: "left" }}>
-          <div style={{ float: "right", marginLeft: 8 }}>
-            <QRCode value={qrUrl} />
+      <div>
+        <center>
+          <br />
+          <div
+            style={{ display: "inline-block", width: 520, textAlign: "left" }}
+          >
+            <div style={{ float: "right", marginLeft: 8 }}>
+              <QRCode value={qrUrl} />
+            </div>
+            <Typography variant="h3" gutterBottom={true}>
+              Connect camera
+            </Typography>
+            <Typography>
+              To connect a camera, open the web-app, scan the QR-code, or open
+              the following url on your mobile phone / device: <br />{" "}
+              <code>{qrUrl}</code>
+              <br />
+            </Typography>
           </div>
-          <Typography variant="h3" gutterBottom={true}>
-            Connect camera
-          </Typography>
-          <Typography>
-            To connect a camera, open the web-app, scan the QR-code, or open the
-            following url on your mobile phone / device: <br />{" "}
-            <code>{qrUrl}</code>
-            <br />
-          </Typography>
-        </div>
-      </center>
+        </center>
+        <pre>{JSON.stringify(msgs, null, 4)}</pre>
+      </div>
     );
   }
   renderCamera() {
