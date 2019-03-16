@@ -1,4 +1,4 @@
-const IPFS = require("ipfs");
+const IPFS = require("ipfs")
 export const node = new IPFS({
   EXPERIMENTAL: { pubsub: true, dht: true },
   config: {
@@ -8,28 +8,28 @@ export const node = new IPFS({
       ]
     }
   }
-});
+})
 const id = Math.random()
   .toString(36)
-  .slice(2);
-window.ipfs = node;
+  .slice(2)
+window.ipfs = node
 node.on("ready", async () => {
   try {
-    console.log("IPFS READY");
+    console.log("IPFS READY")
     /*
-    await node.pubsub.subscribe("solsort-stop-motion", msg =>
+    await node.pubsub.subscribe("solsort-camera-remote", msg =>
       console.log("pubsub", new TextDecoder("utf-8").decode(msg.data))
     );
     setInterval(() =>
     node.pubsub.publish(
-      "solsort-stop-motion",
+      "solsort-camera-remote",
       Buffer.from(`hello from ${id} ` + window.navigator.userAgent)
     ), 5000);
     */
   } catch (e) {
-    console.log("ipfserr", e);
+    console.log("ipfserr", e)
   }
-});
+})
 node.on("error", error => {
-  console.error("IPFS Error:", error);
-});
+  console.error("IPFS Error:", error)
+})

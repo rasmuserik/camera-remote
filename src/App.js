@@ -1,29 +1,29 @@
-import React, { Component } from "react";
-import { withStyles } from "@material-ui/core/styles";
-import Button from "@material-ui/core/Button";
-import Typography from "@material-ui/core/Typography";
-import jsQR from "jsqr";
-import ReactMarkdown from "react-markdown";
-import QRCode from "qrcode.react";
-import { node } from "./ipfs";
-import Peer from "simple-peer";
+import React, { Component } from "react"
+import { withStyles } from "@material-ui/core/styles"
+import Button from "@material-ui/core/Button"
+import Typography from "@material-ui/core/Typography"
+import jsQR from "jsqr"
+import ReactMarkdown from "react-markdown"
+import QRCode from "qrcode.react"
+import { node } from "./ipfs"
+import Peer from "simple-peer"
 
 const styles = theme => ({
   button: {
     margin: theme.spacing.unit
   }
-});
+})
 
-const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+const sleep = ms => new Promise(resolve => setTimeout(resolve, ms))
 function decode(bytes) {
   try {
-    return JSON.parse(new TextDecoder("utf-8").decode(bytes));
+    return JSON.parse(new TextDecoder("utf-8").decode(bytes))
   } catch (e) {
-    return undefined;
+    return undefined
   }
 }
 function encode(data) {
-  return Buffer.from(JSON.stringify(data));
+  return Buffer.from(JSON.stringify(data))
 }
 
 class App extends Component {
@@ -32,64 +32,64 @@ class App extends Component {
     uiType: undefined,
     msgs: [],
     streams: []
-  };
+  }
   async startComputer() {
-    const peers = {};
-    let { chan } = this.state;
-    this.setState({ uiType: "computer" });
+    const peers = {}
+    let { chan } = this.state
+    this.setState({ uiType: "computer" })
 
     if (!chan) {
       chan = Math.random()
         .toString(36)
-        .slice(2);
-      this.setState({ chan });
+        .slice(2)
+      this.setState({ chan })
     }
 
-    const cons = {};
-    await node.pubsub.subscribe("solsort-stop-motion-" + chan, async msg => {
-      const { msgs } = this.state;
-      const data = decode(msg.data);
-      console.log("solsort-stop-motion-" + chan, "data", data, msg);
+    const cons = {}
+    await node.pubsub.subscribe("solsort-camera-remote-" + chan, async msg => {
+      const { msgs } = this.state
+      const data = decode(msg.data)
+      console.log("solsort-camera-remote-" + chan, "data", data, msg)
       if (data) {
         this.setState({
           msgs: msgs.concat([
             { recvFrom: msg.from, recvDate: new Date().toISOString(), ...data }
           ])
-        });
+        })
         if (data.type === "signal") {
-          const id = msg.from;
-          let o = cons[id];
+          const id = msg.from
+          let o = cons[id]
           if (!o) {
-            o = { peer: new Peer() };
+            o = { peer: new Peer() }
             o.peer.on("signal", data => {
               node.pubsub.publish(
-                "solsort-stop-motion-" + chan,
+                "solsort-camera-remote-" + chan,
                 encode({ to: id, data })
-              );
-            });
+              )
+            })
             o.peer.on("connect", () =>
               node.pubsub.publish(
-                "solsort-stop-motion-" + chan,
+                "solsort-camera-remote-" + chan,
                 encode({ id, connected: true })
               )
-            );
-            cons[id] = o;
+            )
+            cons[id] = o
             o.peer.on("stream", stream => {
-              const { streams } = this.state;
-              this.setState({ streams: streams.concat([{ stream, id }]) });
-            });
+              const { streams } = this.state
+              this.setState({ streams: streams.concat([{ stream, id }]) })
+            })
           }
 
-          o.peer.signal(data.data);
+          o.peer.signal(data.data)
         }
       }
-    });
+    })
     /*
-    console.log("solsort-stop-motion-" + chan);
+    console.log("solsort-camera-remote-" + chan);
     setInterval(
       () =>
         node.pubsub.publish(
-          "solsort-stop-motion-" + chan,
+          "solsort-camera-remote-" + chan,
           encode({
             ua: window.navigator.userAgent,
             role: "computer",
@@ -103,92 +103,95 @@ class App extends Component {
   }
   async startCamera() {
     try {
-      this.setState({ uiType: "camera" });
-      await sleep(300);
+      this.setState({ uiType: "camera" })
+      await sleep(300)
 
       // setup camera
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: false,
         video: true
-      });
-      const video = document.getElementById("cameraPreview");
-      video.srcObject = stream;
-      video.play();
+      })
+      const video = document.getElementById("cameraPreview")
+      video.srcObject = stream
+      video.play()
       const ensureChan = async () => {
         while (!this.state.chan) {
-          await sleep(1000);
-          const canvas = document.getElementById("capturedFrame");
-          canvas.width = video.videoWidth;
-          canvas.height = video.videoHeight;
-          const ctx = canvas.getContext("2d");
-          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-          const { data } = ctx.getImageData(0, 0, canvas.width, canvas.height);
-          const code = jsQR(data, canvas.width, canvas.height);
+          await sleep(1000)
+          const canvas = document.getElementById("capturedFrame")
+          canvas.width = video.videoWidth
+          canvas.height = video.videoHeight
+          const ctx = canvas.getContext("2d")
+          ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
+          const { data } = ctx.getImageData(0, 0, canvas.width, canvas.height)
+          const code = jsQR(data, canvas.width, canvas.height)
           if (code) {
-            this.setState({ chan: code.data.replace(/^.*#/, "") });
+            this.setState({ chan: code.data.replace(/^.*#/, "") })
           }
         }
-      };
-      await ensureChan();
-      const { chan } = this.state;
+      }
+      await ensureChan()
+      const { chan } = this.state
 
       // setup ipfs
       //
-      const computer = new Peer({ initiator: true, stream });
-      let sending = undefined;
+      const computer = new Peer({ initiator: true, stream })
+      let sending = undefined
       const sender = setInterval(
         () =>
           sending &&
           node.pubsub.publish(
-            "solsort-stop-motion-" + chan,
+            "solsort-camera-remote-" + chan,
             encode({
               typs: "signal",
               data: sending
             })
           ),
         5000
-      );
+      )
 
-      await node.pubsub.subscribe("solsort-stop-motion-" + chan, async msg => {
-        const data = decode(msg.data);
-        if (data) {
-          console.log("xxx", data.to, (await node.id()).id);
-          if (data.to === (await node.id()).id) {
-            console.log("here!", msg.data);
-            clearInterval(sender);
-            computer.signal(data.data);
+      await node.pubsub.subscribe(
+        "solsort-camera-remote-" + chan,
+        async msg => {
+          const data = decode(msg.data)
+          if (data) {
+            console.log("xxx", data.to, (await node.id()).id)
+            if (data.to === (await node.id()).id) {
+              console.log("here!", msg.data)
+              clearInterval(sender)
+              computer.signal(data.data)
+            }
           }
         }
-      });
+      )
       computer.on("signal", data => {
-        sending = data;
+        sending = data
         node.pubsub.publish(
-          "solsort-stop-motion-" + chan,
+          "solsort-camera-remote-" + chan,
           encode({
             type: "signal",
             data
           })
-        );
-      });
-      computer.on("connect", () => console.log("CONNECTED"));
+        )
+      })
+      computer.on("connect", () => console.log("CONNECTED"))
     } catch (e) {
-      console.log("startCamera error", e);
-      throw e;
+      console.log("startCamera error", e)
+      throw e
     }
   }
   componentDidUpdate() {
-    const { streams } = this.state;
+    const { streams } = this.state
     for (const { id, stream } of streams) {
-      const video = document.getElementById(id);
-      console.log("didUpdate", video, stream);
-      video.srcObject = stream;
-      video.play();
+      const video = document.getElementById(id)
+      console.log("didUpdate", video, stream)
+      video.srcObject = stream
+      video.play()
     }
   }
   renderComputer() {
-    const { classes } = this.props;
-    const { chan, msgs, streams } = this.state;
-    const qrUrl = window.location.href.replace(/#.*./, "") + "#" + chan;
+    const { classes } = this.props
+    const { chan, msgs, streams } = this.state
+    const qrUrl = window.location.href.replace(/#.*./, "") + "#" + chan
     return (
       <div>
         {streams.map(({ id, stream, streamUrl }) => (
@@ -218,11 +221,11 @@ class App extends Component {
         </center>
         <pre>{JSON.stringify(msgs, null, 4)}</pre>
       </div>
-    );
+    )
   }
   renderCamera() {
-    const { classes } = this.props;
-    const { chan } = this.state;
+    const { classes } = this.props
+    const { chan } = this.state
     return (
       <center>
         {!chan && (
@@ -249,23 +252,23 @@ class App extends Component {
         <br />
         <canvas id="capturedFrame" />
       </center>
-    );
+    )
   }
   render() {
-    const { uiType } = this.state;
-    const { classes } = this.props;
+    const { uiType } = this.state
+    const { classes } = this.props
 
     if (uiType === "computer") {
-      return this.renderComputer();
+      return this.renderComputer()
     }
     if (uiType === "camera") {
-      return this.renderCamera();
+      return this.renderCamera()
     }
 
     return (
       <center>
         <Typography gutterBottom={true} variant="h2">
-          Stop Motion
+          Camera Remote
         </Typography>
         <Typography>
           Is this the UI on a computer/tablet or is it a camera/tablet/phone?
@@ -301,11 +304,11 @@ This is a simple tool for making stop motion animations, with a UI running on a 
           </div>
         </Typography>
       </center>
-    );
+    )
   }
 }
 
-export default withStyles(styles)(App);
+export default withStyles(styles)(App)
 
 /*
 export const chan =

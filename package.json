@@ -1,12 +1,12 @@
 {
-  "name": "stop-motion",
+  "name": "camera-remote",
   "version": "0.1.0",
   "private": true,
   "author": "Rasmus Erik Voel Jensen (rasmuserik.com)",
-  "homepage": "https://stop-motion.solsort.com",
+  "homepage": "https://camera-remote.solsort.com",
   "lint-staged": {
     "*.{js,jsx,md,json,css}": [
-      "prettier --write",
+      "prettier --no-semi --write",
       "git add"
     ]
   },

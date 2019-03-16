@@ -1,12 +1,5 @@
-# stop motion
+# Camera remote
 
-## UI-flow
+First step in building a stop motion web/app. With this web app you can connect a camera to a web-page in a computer (next step would be to take pictures and animate them).
 
-- UI or camera
-- UI
-  - qr-code + link
-  - cameras (click to take pictures)
-  - list of pictures
-  - loop of pictures
-- camera
-  - scan qr code if not hash
+It has nobackend, but connects the clients through ipfs and webrtc
