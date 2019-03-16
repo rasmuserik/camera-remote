@@ -5,6 +5,7 @@ import Typography from "@material-ui/core/Typography";
 import jsQR from "jsqr";
 import ReactMarkdown from "react-markdown";
 import QRCode from "qrcode.react";
+import { node } from "./ipfs";
 
 const styles = theme => ({
   button: {
@@ -17,6 +18,17 @@ class App extends Component {
     chan: window.location.hash.slice(1) || undefined,
     uiType: undefined
   };
+  startComputer() {
+    let { chan } = this.state;
+    this.setState({ uiType: "computer" });
+
+    if (!chan) {
+      chan = Math.random()
+        .toString(36)
+        .slice(2);
+      this.setState({ chan });
+    }
+  }
   render() {
     const { classes } = this.props;
     const { uiType, chan } = this.state;
@@ -24,17 +36,25 @@ class App extends Component {
     if (uiType === "computer") {
       const qrUrl = window.location.href.replace(/#.*./, "") + "#" + chan;
       return (
-        <div>
-          <div style={{ float: "left", marginRight: 8 }}>
-            <QRCode value={qrUrl} />
+        <center>
+          <br />
+          <div
+            style={{ display: "inline-block", width: 520, textAlign: "left" }}
+          >
+            <div style={{ float: "right", marginLeft: 8 }}>
+              <QRCode value={qrUrl} />
+            </div>
+            <Typography variant="h3" gutterBottom={true}>
+              Connect camera
+            </Typography>
+            <Typography>
+              To connect a camera, open the web-app, scan the QR-code, or open
+              the following url on your mobile phone / device: <br />{" "}
+              <code>{qrUrl}</code>
+              <br />
+            </Typography>
           </div>
-          <Typography variant="h4">Connect camera</Typography>
-          <Typography>
-            To connect a camera, scan the QR-code, or open <br /> the following
-            url on your mobile phone / device: <br /> <code>{qrUrl}</code>
-            <br />
-          </Typography>
-        </div>
+        </center>
       );
     }
 
@@ -44,23 +64,13 @@ class App extends Component {
           Stop Motion
         </Typography>
         <Typography>
-          Is this the UI runing on a computer/tablet or is it a
-          camera/tablet/phone?
+          Is this the UI on a computer/tablet or is it a camera/tablet/phone?
         </Typography>
         <Button
           variant="contained"
           color="primary"
           className={classes.button}
-          onClick={() => {
-            this.setState({
-              uiType: "computer",
-              chan:
-                chan ||
-                Math.random()
-                  .toString(36)
-                  .slice(2)
-            });
-          }}
+          onClick={() => this.startComputer()}
         >
           Computer
         </Button>
